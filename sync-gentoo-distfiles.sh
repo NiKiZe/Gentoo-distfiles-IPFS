@@ -32,17 +32,18 @@ echo "End: "`date` >> $0.log 2>&1
 
 # do a dryrun of sync and grab the delete lines
 mv $0.delete.log $0.delete.log.old
-${RSYNC} ${OPTS} --dry-run --delete ${SRC} ${DST} >> tee $0.delete.log >> $0.log 2>&1
+${RSYNC} ${OPTS} --dry-run --delete ${SRC} ${DST}  2>&1 | tee $0.delete.log >> $0.log
 cat $0.delete.log >> $0.log
 echo "Delete dl done: "`date` >> $0.log 2>&1
 # TODO grep the delete file for files to do ipfs pin rm, but that requires the hash for it, so needs a lookup in $0.ipfsadd.log
 # hopefully this will be easier in the future
 # make sure we don't refer to anything that might have been removed,
 # see https://github.com/ipfs/go-ipfs/issues/4260#issuecomment-406827554
+# Update, we need verify stuff, but with file-order it is on magnitude of an hour
+mv verify.log verify.log.old
+(time (ipfs filestore verify --local --file-order | grep -v ^ok)) | tee verify.log
 [[ "$DELETE" != "" ]] && time ipfs repo gc >> $0.log 2>&1
 echo "gc done: "`date` >> $0.log 2>&1
-#time ipfs filestore verify --local
-# but it takes >8, or maybe 12h
 
 # gentoo-distfiles might be a symlink so take it's childs /* and -w to wrap it
 # symlinks in the tree might not yet be working; https://github.com/VictorBjelkholm/arch-mirror/issues/1
@@ -61,13 +62,15 @@ mv ${HASHFILE} ${HASHFILE}.old
 # gentoo-distfiles might be a symlink so take it's childs /* and -w to wrap it
 ipfs add -w -r --nocopy --local ${DSTBASE}/* > ${HASHFILE}
 HASH="$(tail -n1 ${HASHFILE} | cut -d ' ' -f2)"
-echo "ipfs add done ${HASH}: "`date` >> $0.log 2>&1
+echo "ipfs add ${HASH} done: "`date` >> $0.log 2>&1
 logger -t rsync "sync gentoo-portage tree done IPFS ${HASH}"
 
 # run ipfs name commands in background since they are slow
 ipfs name publish /ipfs/${HASH} &
+# if ipns is mounted we get; "Error: cannot manually publish while IPNS is mounted" needs a workaround for that
+
 # Add DNS; _dnslink.distfiles.gentoo.org TXT "dnslink=/ipfs/${HASH}"
 # it speeds up name resolution since IPNS for the moment is "to" slow
-[[ -x dnsupdate.sh ]] && sh dnsupdate.sh "dnslink=/ipfs/${HASH}"
+[[ -x dnsupdate.sh ]] && [[ "${HASH}" != "" ]]&& sh dnsupdate.sh "dnslink=/ipfs/${HASH}"
 # example; dig txt _dnslink.arch.victor.earth
 # symlinks might not yet be working; https://github.com/VictorBjelkholm/arch-mirror/issues/1
