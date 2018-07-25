@@ -1,0 +1,5 @@
+gentoo-distfiles
+*.log
+*.log.old
+.ipfs/
+dnsupdate.sh
