@@ -4,11 +4,9 @@
 
 RSYNC="/usr/bin/rsync"
 # --checksum is slow, don't use, --numeric-ids should speed up
-DELETE=""
-# since removed files causes issues, only remove, and clean once in a while
-#DELETE="--delete-after"
+# removed files causes issues, do them separate
 OPTS="--quiet --recursive --links --perms --times -D --delete --timeout=300 --numeric-ids"
-OPTS="-v --no-motd --recursive --links --perms --times -D ${DELETE} --timeout=300 --numeric-ids"
+OPTS="-v --no-motd --recursive --links --perms --times -D --timeout=300 --numeric-ids"
 
 SRC="ftp.ussg.iu.edu::gentoo-distfiles$1"
 # for the first sync, find a quick one from https://www.gentoo.org/downloads/mirrors/
@@ -32,7 +30,7 @@ echo "End: "`date` >> $0.log 2>&1
 
 # do a dryrun of sync and grab the delete lines
 mv $0.delete.log $0.delete.log.old
-${RSYNC} ${OPTS} --dry-run --delete ${SRC} ${DST}  2>&1 | tee $0.delete.log >> $0.log
+${RSYNC} ${OPTS} --dry-run --delete ${SRC} ${DST} 2>&1 | tee $0.delete.log >> $0.log
 cat $0.delete.log >> $0.log
 echo "Delete dl done: "`date` >> $0.log 2>&1
 # TODO grep the delete file for files to do ipfs pin rm, but that requires the hash for it, so needs a lookup in $0.ipfsadd.log
@@ -41,12 +39,11 @@ echo "Delete dl done: "`date` >> $0.log 2>&1
 # see https://github.com/ipfs/go-ipfs/issues/4260#issuecomment-406827554
 # Update, we need verify stuff, but with file-order it is on magnitude of an hour
 mv verify.log verify.log.old
-(time (ipfs filestore verify --local --file-order | grep -v ^ok)) | tee verify.log
-[[ "$DELETE" != "" ]] && time ipfs repo gc >> $0.log 2>&1
+(time (ipfs filestore verify --local --file-order | grep -v ^ok)) 2>&1 | tee verify.log >> $0.log
+echo "verify done: "`date` >> $0.log 2>&1
+# verify on it's own don't seem to actually remove anything
+grep -q -v ^ok verify.log && (time ipfs repo gc) >> $0.log 2>&1
 echo "gc done: "`date` >> $0.log 2>&1
-
-# gentoo-distfiles might be a symlink so take it's childs /* and -w to wrap it
-# symlinks in the tree might not yet be working; https://github.com/VictorBjelkholm/arch-mirror/issues/1
 
 # some optimizations for large datasets; https://github.com/ipfs/notes/issues/212
 # Sharding is needed to handle directories that otherwise generates to large objects - here we force it
@@ -60,7 +57,8 @@ HASHFILE=$0.ipfsadd.log
 mv ${HASHFILE} ${HASHFILE}.old
 # re-adding the tree takes over an hour
 # gentoo-distfiles might be a symlink so take it's childs /* and -w to wrap it
-ipfs add -w -r --nocopy --local ${DSTBASE}/* > ${HASHFILE}
+# symlinks in the tree might not yet be working; https://github.com/VictorBjelkholm/arch-mirror/issues/1
+(time (ipfs add -w -r --nocopy --local ${DSTBASE}/* > ${HASHFILE})) >> $0.log 2>&1
 HASH="$(tail -n1 ${HASHFILE} | cut -d ' ' -f2)"
 echo "ipfs add ${HASH} done: "`date` >> $0.log 2>&1
 logger -t rsync "sync gentoo-portage tree done IPFS ${HASH}"
