@@ -31,10 +31,14 @@ echo "End: "`date` >> $0.log 2>&1
 # do a dryrun of sync and grab the delete lines
 mv $0.delete.log $0.delete.log.old
 ${RSYNC} ${OPTS} --dry-run --delete ${SRC} ${DST} 2>&1 | tee $0.delete.log >> $0.log
+grep ^deleting "$0.delete.log" | cut -d ' ' -f 2- | while read l; do
+  # TODO grep the delete file for files to do ipfs pin rm, but that requires the hash for it, so needs a lookup in $0.ipfsadd.log
+  # hopefully this will be easier in the future
+  break
+done
+
 cat $0.delete.log >> $0.log
 echo "Delete dl done: "`date` >> $0.log 2>&1
-# TODO grep the delete file for files to do ipfs pin rm, but that requires the hash for it, so needs a lookup in $0.ipfsadd.log
-# hopefully this will be easier in the future
 # make sure we don't refer to anything that might have been removed,
 # see https://github.com/ipfs/go-ipfs/issues/4260#issuecomment-406827554
 # Update, we need verify stuff, but with file-order it is on magnitude of an hour
@@ -60,6 +64,12 @@ mv ${HASHFILE} ${HASHFILE}.old
 # symlinks in the tree might not yet be working; https://github.com/VictorBjelkholm/arch-mirror/issues/1
 (time (ipfs add -w -r --nocopy --local ${DSTBASE}/* > ${HASHFILE})) >> $0.log 2>&1
 HASH="$(tail -n1 ${HASHFILE} | cut -d ' ' -f2)"
+
+#TODO check for existing files item, and if it exists check hash, only update if changed
+ipfs files rm /gentoo-distfiles.old
+ipfs files mv /gentoo-distfiles /gentoo-distfiles.old
+ipfs files cp /ipfs/${HASH} /gentoo-distfiles
+
 echo "ipfs add ${HASH} done: "`date` >> $0.log 2>&1
 logger -t rsync "sync gentoo-portage tree done IPFS ${HASH}"
 
