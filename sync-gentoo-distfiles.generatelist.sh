@@ -31,7 +31,7 @@ getipfsfilestat() {
       esac
     ;;
     *)
-      echo Unsupported type $s
+      echo "Unsupported type $s for $l"
       exit 1
     ;;
   esac
