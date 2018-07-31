@@ -72,7 +72,7 @@ if [[ "$OLDREPOHASH" != "" ]]; then
     fi
     echo "doing add for $lifp old file hash: $OLDHASH" >> $0.log 2>&1
     # TODO use this as a pipe instead - should avoid opening and closing
-    (ipfs add --nocopy --raw-leaves --local $l > ${HASHFILE}) >> $0.log 2>&1
+    (ipfs add --nocopy --raw-leaves --local -H $l > ${HASHFILE}) >> $0.log 2>&1
     HASH="$(tail -n1 ${HASHFILE} | cut -d ' ' -f2)"
     [[ "$HASH" == "$OLDHASH" ]] && continue
     removeold_ipfs $lifp $OLDHASH >> $0.log 2>&1
@@ -121,7 +121,7 @@ fi # ipfs mfs files does not yet exist, first run?
 # symlinks in the tree might not yet be working; https://github.com/VictorBjelkholm/arch-mirror/issues/1
 HASH=$NEWREPOHASH
 if [[ "$OLDREPOHASH" == "" ]] || [[ "$FULLADD" == "fulladd" ]]; then
-  (time (ipfs add -w -r --nocopy --local ${DSTBASE}/* > ${HASHFILE})) >> $0.log 2>&1
+  (time (ipfs add -w -r --nocopy --local -H ${DSTBASE}/* > ${HASHFILE})) >> $0.log 2>&1
   HASH="$(tail -n1 ${HASHFILE} | cut -d ' ' -f2)"
 fi
 

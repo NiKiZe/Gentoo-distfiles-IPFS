@@ -11,7 +11,7 @@ getipfsfilestat() {
   local fpath=${REPONAME}${l#${DSTBASE}}
   if [[ -L "$l" ]]; then
     # there are some issues with symlink - it is mostly ok to ignore those issues
-    local symlinkhash=$(ipfs add --local -q -r -n --raw-leaves --nocopy"$l")
+    local symlinkhash=$(ipfs add --local -q -r -n --raw-leaves --nocopy -H "$l")
     local s="symlink:$fpath -> $(readlink -n $l):${symlinkhash}:0"
   else
     # starting all these processes is horrible, but for now there is no native recursive support
@@ -31,8 +31,9 @@ getipfsfilestat() {
       esac
     ;;
     *)
-      echo "Unsupported type $s for $l"
-      exit 1
+      >&2 echo "Unsupported type $s for $l, trying readding"
+      NEWHASH=$(ipfs add --local -Q -r --nocopy --raw-leaves -H "$l")
+      ipfs files cp /ipfs/${NEWHASH} "/$fpath"
     ;;
   esac
   local namehashsize="${s#*:}"
