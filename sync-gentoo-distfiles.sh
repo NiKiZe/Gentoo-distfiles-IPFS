@@ -138,6 +138,7 @@ fi
 echo "ipfs add ${HASH} done: "`date` >> $0.log 2>&1
 logger -t rsync "sync gentoo-portage tree done IPFS ${HASH}"
 
+updatelinks() {
 # run ipfs name commands in background since they are slow
 (ipfs name publish /ipfs/${HASH} >> $0.log 2>&1) &
 # if ipns is mounted we get; "Error: cannot manually publish while IPNS is mounted" needs a workaround for that
@@ -147,3 +148,19 @@ logger -t rsync "sync gentoo-portage tree done IPFS ${HASH}"
 [[ -x dnsupdate.sh ]] && [[ "${HASH}" != "" ]]&& sh dnsupdate.sh "dnslink=/ipfs/${HASH}" >> $0.log 2>&1
 # example; dig txt _dnslink.arch.victor.earth
 # symlinks might not yet be working; https://github.com/VictorBjelkholm/arch-mirror/issues/1
+}
+updatelinks
+
+# generate filelist and update
+# this takes some time, so do it after first update
+# TODO make this smarter by updating existing list instead while doing stuff above
+LISTHASH=$(sh sync-gentoo-distfiles.generatelist.sh | grep -v "gentoo-distfiles/:" | sort | xz -z | ipfs add -Q --local --raw-leaves)
+OLDLISTHASH=$(ipfs files stat --hash /gentoo-distfiles/ipfslist) 2> /dev/null
+if [[ "$OLDLISTHASH" != "$LISTHASH" ]]; then
+  ipfs files rm /gentoo-distfiles/ipfslist.old.xz >> $0.log 2>&1
+  ipfs files mv /gentoo-distfiles/ipfslist.xz /gentoo-distfiles/ipfslist.old.xz >> $0.log 2>&1
+  ipfs files cp /ipfs/${LISTHASH} /gentoo-distfiles/ipfslist.xz >> $0.log 2>&1
+fi
+# update
+HASH=$(getmfsrepohash)
+updatelinks
