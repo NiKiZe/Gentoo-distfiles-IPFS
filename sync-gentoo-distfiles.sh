@@ -155,7 +155,7 @@ updatelinks
 # this takes some time, so do it after first update
 # TODO make this smarter by updating existing list instead while doing stuff above
 LISTHASH=$(sh sync-gentoo-distfiles.generatelist.sh | grep -v "gentoo-distfiles/:" | sort | xz -z | ipfs add -Q --local --raw-leaves)
-OLDLISTHASH=$(ipfs files stat --hash /gentoo-distfiles/ipfslist) 2> /dev/null
+OLDLISTHASH=$(ipfs files stat --hash /gentoo-distfiles/ipfslist.xz) 2> /dev/null
 if [[ "$OLDLISTHASH" != "$LISTHASH" ]]; then
   ipfs files rm /gentoo-distfiles/ipfslist.old.xz >> $0.log 2>&1
   ipfs files mv /gentoo-distfiles/ipfslist.xz /gentoo-distfiles/ipfslist.old.xz >> $0.log 2>&1
