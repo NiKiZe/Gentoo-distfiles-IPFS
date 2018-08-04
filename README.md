@@ -13,7 +13,7 @@ The intention of this is to use IPFS as a mirror for distfiles as described at h
 - Add `https://ipfs.io/ipns/gentoo.free.netboot.se/` to your `GENTOO_MIRRORS` variable in `make.conf` make sure to keep fallbacks
 - Enjoy immutable and distributed updates to your system!
 
-There are a few ways you can use the IPFS Arch mirror.
+There are a few ways you can use the IPFS Gentoo mirror.
 
 - Use IPNS directly (slow): https://ipfs.io/ipns/QmescA7sGoc4yZEe3Gof7dYt2qkkxDEXQPT2z84MpjVu8o
 - Use IPFS directly (fast but harder for you to update): - don't use
@@ -47,6 +47,7 @@ Want to setup your own IPFS mirror? It's easy, just follow these steps:
 - Edit `./sync-gentoo-distfiles.sh` to make sure mirror and other things is set appropiately.
 - Run `./sync-gentoo-distfiles.sh` which downloads the latest distfiles
   to `./gentoo-distfiles`.
+- Add to crontab `10 */4 *  * *  sh /home/distfiles/sync-gentoo-distfiles.sh &`
 
 > TODO write more details here
 
