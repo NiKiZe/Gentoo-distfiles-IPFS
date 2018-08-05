@@ -10,7 +10,7 @@ Note this is still work in progress!
 
 The intention of this is to use IPFS as a mirror for distfiles as described at https://www.gentoo.org/downloads/mirrors/
 
-- Add `https://ipfs.io/ipns/gentoo.free.netboot.se/` to your `GENTOO_MIRRORS` variable in `make.conf` make sure to keep fallbacks
+- Add `GENTOO_MIRRORS="https://ipfs.io/ipns/gentoo.free.netboot.se $GENTOO_MIRRORS"` in `/etc/portage/make.conf` fallbacks are keept just in case
 - Enjoy immutable and distributed updates to your system!
 
 There are a few ways you can use the IPFS Gentoo mirror.
@@ -48,6 +48,9 @@ Want to setup your own IPFS mirror? It's easy, just follow these steps:
 - Run `./sync-gentoo-distfiles.sh` which downloads the latest distfiles
   to `./gentoo-distfiles`.
 - Add to crontab `10 */4 *  * *  sh /home/distfiles/sync-gentoo-distfiles.sh &`
+- If `dnsupdate.sh` exists and is executable then it will be called with $1 being `dnslink=/ipfs/$HASH`
+  Use to update a DNS record like: `_dnslink 60 TXT $1`,
+  which would result in `_dnslink 60 TXT dnslink=/ipfs/$HASH`
 
 > TODO write more details here
 
